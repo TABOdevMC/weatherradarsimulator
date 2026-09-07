@@ -8,10 +8,7 @@
 </head>
 <body>
   <main class="app">
-    <header>
-      <div><p class="eyebrow">WEATHER RADAR</p><h1>Storm Radar Simulator</h1></div>
-      <div class="status"><span class="dot"></span> SIMULATION ACTIVE</div>
-    </header>
+    <header><div><p class="eyebrow">WEATHER RADAR</p><h1>Storm Radar Simulator</h1></div><div class="status"><span class="dot"></span> SIMULATION ACTIVE</div></header>
     <section class="layout">
       <div class="radar-card">
         <canvas id="radar" aria-label="Radar météorologique simulé avec carte des vents"></canvas>
@@ -24,10 +21,11 @@
         <label>Vitesse <output id="speedOut">1.0×</output><input id="speed" type="range" min="0.25" max="4" value="1" step="0.25" /></label>
         <label>Intensité <output id="intensityOut">70%</output><input id="intensity" type="range" min="20" max="100" value="70" /></label>
         <label>Direction du vent <output id="windOut">ENE · 70°</output><input id="wind" type="range" min="0" max="359" value="70" /></label>
+        <button id="windToggle" class="wind-toggle active">🌬️ Carte des vents : ON</button>
         <div class="actions"><button id="toggle">❚❚ Pause</button><button id="reset" class="secondary">↻ Réinitialiser</button></div>
         <button id="add" class="spawn">＋ Générer un orage</button>
         <div class="stats"><div><span>Orages</span><strong id="stormCount">5</strong></div><div><span>Cellules actives</span><strong id="cellCount">10</strong></div><div><span>Intensité max</span><strong id="maxIntensity">70 dBZ</strong></div></div>
-        <div class="info"><strong>Carte des vents</strong><p>Les flèches indiquent la direction et la vitesse du flux. Les lignes de vent se déforment autour des supercellules pour mieux visualiser leur environnement.</p></div>
+        <div class="info"><strong>Carte des vents</strong><p>Active ou masque les flèches et lignes de flux sans modifier la simulation des supercellules.</p></div>
       </aside>
     </section>
   </main>
