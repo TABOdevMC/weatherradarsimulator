@@ -9,54 +9,25 @@
 <body>
   <main class="app">
     <header>
-      <div>
-        <p class="eyebrow">WEATHER RADAR</p>
-        <h1>Storm Radar Simulator</h1>
-      </div>
+      <div><p class="eyebrow">WEATHER RADAR</p><h1>Storm Radar Simulator</h1></div>
       <div class="status"><span class="dot"></span> SIMULATION ACTIVE</div>
     </header>
-
     <section class="layout">
       <div class="radar-card">
-        <canvas id="radar" aria-label="Radar météorologique simulé"></canvas>
-        <div class="radar-overlay">
-          <span id="clock">12:00:00</span>
-          <span>RANGE 240 KM</span>
-        </div>
-        <div class="legend">
-          <span>INTENSITÉ</span>
-          <i class="c1"></i><i class="c2"></i><i class="c3"></i><i class="c4"></i><i class="c5"></i>
-          <small>faible → extrême</small>
-        </div>
+        <canvas id="radar" aria-label="Radar météorologique simulé avec carte des vents"></canvas>
+        <div class="radar-overlay"><span id="clock">12:00:00</span><span>RANGE 240 KM</span></div>
+        <div class="wind-label">💨 CARTE DES VENTS · <strong id="windSpeedMap">70 kt</strong></div>
+        <div class="legend"><span>INTENSITÉ</span><i class="c1"></i><i class="c2"></i><i class="c3"></i><i class="c4"></i><i class="c5"></i><small>faible → extrême</small></div>
       </div>
-
       <aside class="panel">
         <h2>Contrôle de la simulation</h2>
-        <label>Vitesse <output id="speedOut">1.0×</output>
-          <input id="speed" type="range" min="0.25" max="4" value="1" step="0.25" />
-        </label>
-        <label>Intensité <output id="intensityOut">70%</output>
-          <input id="intensity" type="range" min="20" max="100" value="70" />
-        </label>
-        <label>Direction du vent <output id="windOut">ENE · 70°</output>
-          <input id="wind" type="range" min="0" max="359" value="70" />
-        </label>
-        <div class="actions">
-          <button id="toggle">❚❚ Pause</button>
-          <button id="reset" class="secondary">↻ Réinitialiser</button>
-        </div>
+        <label>Vitesse <output id="speedOut">1.0×</output><input id="speed" type="range" min="0.25" max="4" value="1" step="0.25" /></label>
+        <label>Intensité <output id="intensityOut">70%</output><input id="intensity" type="range" min="20" max="100" value="70" /></label>
+        <label>Direction du vent <output id="windOut">ENE · 70°</output><input id="wind" type="range" min="0" max="359" value="70" /></label>
+        <div class="actions"><button id="toggle">❚❚ Pause</button><button id="reset" class="secondary">↻ Réinitialiser</button></div>
         <button id="add" class="spawn">＋ Générer un orage</button>
-
-        <div class="stats">
-          <div><span>Orages</span><strong id="stormCount">4</strong></div>
-          <div><span>Cellules actives</span><strong id="cellCount">12</strong></div>
-          <div><span>Intensité max</span><strong id="maxIntensity">70 dBZ</strong></div>
-        </div>
-
-        <div class="info">
-          <strong>Mode simulation</strong>
-          <p>Les cellules se déplacent avec le vent, grandissent et évoluent automatiquement. Aucun radar réel n'est utilisé.</p>
-        </div>
+        <div class="stats"><div><span>Orages</span><strong id="stormCount">5</strong></div><div><span>Cellules actives</span><strong id="cellCount">10</strong></div><div><span>Intensité max</span><strong id="maxIntensity">70 dBZ</strong></div></div>
+        <div class="info"><strong>Carte des vents</strong><p>Les flèches indiquent la direction et la vitesse du flux. Les lignes de vent se déforment autour des supercellules pour mieux visualiser leur environnement.</p></div>
       </aside>
     </section>
   </main>
