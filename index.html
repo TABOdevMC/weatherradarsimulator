@@ -24,7 +24,8 @@
 </section>
 </main>
 </div>
-<script src="app.js?v=windcolors2"></script>
+<script src="wind-fix.js?v=1"></script>
+<script src="app.js?v=windcolors3"></script>
 <script>
 const windScale=[[0,[0,0,0]],[30,[20,45,180]],[60,[35,105,45]],[90,[85,190,70]],[110,[255,235,35]],[135,[255,145,20]],[160,[220,35,30]],[185,[120,35,155]],[215,[245,80,170]],[240,[255,255,255]]];
 function windColor(value){const v=Math.max(0,Math.min(240,value));let i=windScale.length-2;for(let n=1;n<windScale.length;n++){if(v<=windScale[n][0]){i=n-1;break}}const a=windScale[i],b=windScale[i+1],q=(v-a[0])/(b[0]-a[0]);return[a[1][0]+(b[1][0]-a[1][0])*q,a[1][1]+(b[1][1]-a[1][1])*q,a[1][2]+(b[1][2]-a[1][2])*q]}
