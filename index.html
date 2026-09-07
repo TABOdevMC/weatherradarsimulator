@@ -24,6 +24,12 @@
 </section>
 </main>
 </div>
-<script src="app.js?v=windcolors1"></script>
+<script src="app.js?v=windcolors2"></script>
+<script>
+const windScale=[[0,[0,0,0]],[30,[20,45,180]],[60,[35,105,45]],[90,[85,190,70]],[110,[255,235,35]],[135,[255,145,20]],[160,[220,35,30]],[185,[120,35,155]],[215,[245,80,170]],[240,[255,255,255]]];
+function windColor(value){const v=Math.max(0,Math.min(240,value));let i=windScale.length-2;for(let n=1;n<windScale.length;n++){if(v<=windScale[n][0]){i=n-1;break}}const a=windScale[i],b=windScale[i+1],q=(v-a[0])/(b[0]-a[0]);return[a[1][0]+(b[1][0]-a[1][0])*q,a[1][1]+(b[1][1]-a[1][1])*q,a[1][2]+(b[1][2]-a[1][2])*q]}
+renderWind=function(){const image=wctx.createImageData(GRID,GRID),data=image.data,scale=2/GRID,base=flowAngle(),bx=Math.cos(base),by=Math.sin(base);for(let j=0;j<GRID;j++)for(let i=0;i<GRID;i++){const x=(i+.5-GRID/2)*scale,y=(j+.5-GRID/2)*scale;let u=bx*windSpeed(),v=by*windSpeed();for(const s of storms){const dx=x-s.x,dy=y-s.y,d=Math.hypot(dx,dy)+.001,rad=windInfluenceRadius(s.type);if(d<rad){const inf=Math.exp(-(d*d)/(rad*rad*.30)),tx=-dy/d,ty=dx/d;let rot=.12,conv=.08,out=0;if(s.type==='supercell'){rot=.72;conv=.35}if(s.type==='multicell'){rot=.24;conv=.18}if(s.type==='single'){rot=.08;conv=.10}if(s.type==='line'){rot=.05;conv=.08;out=.55}if(s.type==='bow'){rot=.06;conv=.06;out=.9}if(s.type==='derecho'){rot=.03;conv=.04;out=1.25}u+=tx*rot*inf*windSpeed()+(-dx/d)*conv*inf*windSpeed()+bx*out*inf*windSpeed();v+=ty*rot*inf*windSpeed()+(-dy/d)*conv*inf*windSpeed()+by*out*inf*windSpeed();if(s.tornado&&d<.06){const z=(1-d/.06)*windSpeed()*1.25;u+=tx*z;v+=ty*z}}}const val=Math.min(240,Math.hypot(u,v)),col=windColor(val),k=(j*GRID+i)*4;data[k]=col[0];data[k+1]=col[1];data[k+2]=col[2];data[k+3]=255}wctx.putImageData(image,0,0)};
+drawLegend=function(x,y){const labels=windMap?[30,60,90,110,135,160,185,215,240]:[10,20,30,40,50,60,70];ctx.font='9px ui-monospace,monospace';ctx.fillStyle='#9ebdc4';ctx.fillText(windMap?'VENT kt':'RÉFLECTIVITÉ dBZ',x,y-6);const bw=Math.min(30,(Math.min(canvas.clientWidth,canvas.clientHeight)*.72)/labels.length);labels.forEach((v,i)=>{const c=windMap?windColor(v):dbzColor(v);ctx.fillStyle=`rgb(${c[0]},${c[1]},${c[2]})`;ctx.fillRect(x+i*bw,y,bw,8);ctx.fillStyle='#789ba4';ctx.fillText(v,x+i*bw-2,y+19)})};
+</script>
 </body>
 </html>
