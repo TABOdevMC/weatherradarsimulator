@@ -1,26 +1,226 @@
-const canvas=document.getElementById('radar');const ctx=canvas.getContext('2d');let paused=false,last=0,simTime=0;let speed=1,intensity=70,wind=70;let storms=[];
+const canvas=document.getElementById('radar');
+const ctx=canvas.getContext('2d');
+const raster=document.createElement('canvas');
+const rctx=raster.getContext('2d',{alpha:false});
+let paused=false,last=0,simTime=0;
+let speed=1,intensity=70,wind=70,storms=[];
+const GRID=240;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-function seed(){storms=Array.from({length:4},(_,i)=>{const ang=Math.random()*Math.PI*2;return{x:Math.random()*1.65-.825,y:Math.random()*1.65-.825,r:.13+Math.random()*.13,p:2+Math.random()*5,phase:Math.random()*6.28,rot:(Math.random()-.5)*.8,age:Math.random()*10,tilt:(Math.random()-.5)*.8,tornado:Math.random()<.38,tornadoPhase:Math.random()*6.28,tornadoLife:Math.random()*10};});}
+const TAU=Math.PI*2;
+
+// Synthetic NEXRAD-style reflectivity simulator: this is a visual model, not live weather data.
+function seed(){
+  storms=Array.from({length:5},(_,i)=>({
+    x:Math.cos(i*1.71+.7)*(0.25+Math.random()*.62),
+    y:Math.sin(i*1.71+.7)*(0.25+Math.random()*.62),
+    r:.16+Math.random()*.12,
+    p:2+Math.random()*5,
+    phase:Math.random()*TAU,
+    rot:(Math.random()-.5)*.9,
+    age:Math.random()*12,
+    tilt:(Math.random()-.5)*1.4,
+    tornado:Math.random()<.42,
+    tornadoPhase:Math.random()*TAU,
+    tornadoLife:Math.random()*8,
+    seed:Math.random()*1000
+  }));
+}
 seed();
-function resize(){const d=devicePixelRatio||1,r=canvas.getBoundingClientRect();canvas.width=r.width*d;canvas.height=r.height*d;ctx.setTransform(d,0,0,d,0,0)}addEventListener('resize',resize);resize();
-const el=id=>document.getElementById(id);el('speed').oninput=e=>{speed=+e.target.value;el('speedOut').textContent=speed.toFixed(2)+'×'};el('intensity').oninput=e=>{intensity=+e.target.value;el('intensityOut').textContent=intensity+'%'};el('wind').oninput=e=>{wind=+e.target.value;el('windOut').textContent=compass(wind)+' · '+wind+'°'};
-el('toggle').onclick=()=>{paused=!paused;el('toggle').textContent=paused?'▶ Reprendre':'❚❚ Pause'};el('reset').onclick=()=>{seed();simTime=0};el('add').onclick=()=>storms.push({x:(Math.random()-.5)*1.7,y:(Math.random()-.5)*1.7,r:.09+Math.random()*.12,p:2+Math.random()*5,phase:Math.random()*6.28,rot:(Math.random()-.5),age:0,tilt:(Math.random()-.5),tornado:Math.random()<.55,tornadoPhase:Math.random()*6.28,tornadoLife:0});
+
+function resize(){
+  const d=devicePixelRatio||1,r=canvas.getBoundingClientRect();
+  canvas.width=Math.max(1,Math.round(r.width*d));
+  canvas.height=Math.max(1,Math.round(r.height*d));
+  ctx.setTransform(d,0,0,d,0,0);
+  raster.width=GRID;raster.height=GRID;
+}
+addEventListener('resize',resize);resize();
+const el=id=>document.getElementById(id);
+
+el('speed').oninput=e=>{speed=+e.target.value;el('speedOut').textContent=speed.toFixed(2)+'×'};
+el('intensity').oninput=e=>{intensity=+e.target.value;el('intensityOut').textContent=intensity+'%'};
+el('wind').oninput=e=>{wind=+e.target.value;el('windOut').textContent=compass(wind)+' · '+wind+'°'};
+el('toggle').onclick=()=>{paused=!paused;el('toggle').textContent=paused?'▶ Reprendre':'❚❚ Pause'};
+el('reset').onclick=()=>{seed();simTime=0};
+el('add').onclick=()=>storms.push({
+  x:(Math.random()-.5)*1.65,y:(Math.random()-.5)*1.65,r:.10+Math.random()*.13,
+  p:2+Math.random()*5,phase:Math.random()*TAU,rot:(Math.random()-.5),age:0,
+  tilt:(Math.random()-.5)*1.4,tornado:Math.random()<.6,tornadoPhase:Math.random()*TAU,
+  tornadoLife:0,seed:Math.random()*1000
+});
+
 function compass(d){return ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSO','SO','OSO','O','ONO','NO','NNO'][Math.round(d/22.5)%16]}
-function noise(x,y,t){return .5+.5*Math.sin(x*12.7+y*8.9+t)+.25*Math.sin(x*27.1-y*19.3-t*1.7)+.12*Math.sin(x*61+y*43+t*2.3)}
-function stormColor(v){if(v<.16)return '#25b96a';if(v<.31)return '#8bd12f';if(v<.47)return '#d9e32b';if(v<.63)return '#ffd32c';if(v<.78)return '#ff7a29';if(v<.9)return '#ef3d46';return '#f5f5f5'}
-function drawRadar(dt){const w=canvas.clientWidth,h=canvas.clientHeight,cx=w/2,cy=h/2,R=Math.min(w,h)*.46;ctx.clearRect(0,0,w,h);ctx.fillStyle='#061017';ctx.fillRect(0,0,w,h);ctx.save();ctx.translate(cx,cy);
-for(let r=.2;r<=1;r+=.2){ctx.beginPath();ctx.arc(0,0,R*r,0,Math.PI*2);ctx.strokeStyle='#1b4651';ctx.globalAlpha=.48;ctx.lineWidth=r===1?1.5:1;ctx.stroke()}for(let a=0;a<Math.PI*2;a+=Math.PI/12){ctx.beginPath();ctx.moveTo(-R*Math.cos(a),-R*Math.sin(a));ctx.lineTo(R*Math.cos(a),R*Math.sin(a));ctx.strokeStyle='#16353e';ctx.globalAlpha=.2;ctx.stroke()}ctx.globalAlpha=1;
-const ang=(wind-90)*Math.PI/180;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Math.cos(ang)*R,Math.sin(ang)*R);ctx.strokeStyle='#56d8ff';ctx.globalAlpha=.08;ctx.lineWidth=34;ctx.stroke();ctx.lineWidth=1;
-for(let i=0;i<260;i++){const a=(i*2.399)%6.283,d=((i*83.17)%100)/100*R;const x=Math.cos(a)*d,y=Math.sin(a)*d;ctx.fillStyle=i%5?'#21434a':'#31535a';ctx.globalAlpha=.07;ctx.fillRect(x,y,1.5,1.5)}ctx.globalAlpha=1;
-for(const s of storms){const dtMove=dt/1000;const dx=Math.cos(ang)*s.p*.008,dy=Math.sin(ang)*s.p*.008;s.x+=dx*speed*dtMove;s.y+=dy*speed*dtMove;if(Math.hypot(s.x,s.y)>1.18){s.x=-Math.cos(ang)*1.1;s.y=-Math.sin(ang)*1.1;s.p=2+Math.random()*5;s.age=0}s.age+=dtMove*speed;s.phase+=dtMove*(.45+s.rot);s.tornadoPhase+=dtMove*1.8;s.tornadoLife+=dtMove;if(s.tornado&&s.tornadoLife>8+Math.random()*8)s.tornado=false;if(!s.tornado&&s.age>3&&intensity>58&&Math.random()<dtMove*.012)s.tornado=true;const px=s.x*R,py=s.y*R;const growth=.9+.14*Math.sin(s.age*.55+s.phase);drawCell(px,py,s.r*R*growth,s)}ctx.restore();ctx.fillStyle='#7fabb7';ctx.font='10px ui-monospace,monospace';ctx.fillText('N',cx-4,cy-R-10);ctx.fillText('S',cx-4,cy+R+18);ctx.fillText('O',cx-R-18,cy+3);ctx.fillText('E',cx+R+8,cy+3)}
-function drawCell(x,y,r,s){ctx.save();ctx.translate(x,y);ctx.rotate(s.tilt*.15+Math.sin(s.phase*.3)*.08);
-// trailing inflow / anvil plume
-ctx.save();ctx.rotate(Math.PI);const plume=ctx.createRadialGradient(0,0,r*.08,0,0,r*2.3);plume.addColorStop(0,'rgba(255,110,35,.10)');plume.addColorStop(.45,'rgba(255,210,40,.045)');plume.addColorStop(1,'rgba(30,190,110,0)');ctx.fillStyle=plume;ctx.beginPath();ctx.ellipse(r*.65,0,r*2.1,r*.48,0,0,Math.PI*2);ctx.fill();ctx.restore();
-// irregular concentric reflectivity fields
-for(let k=12;k>=1;k--){const q=k/12;ctx.beginPath();const n=80;for(let i=0;i<=n;i++){const a=i/n*Math.PI*2;const wob=.82+.16*Math.sin(a*2+s.phase)+.10*Math.sin(a*5-s.phase*1.4)+.055*Math.sin(a*11+s.phase*2);const asym=1+.22*Math.cos(a-s.tilt);const rr=r*q*wob*asym;const x2=Math.cos(a)*rr,y2=Math.sin(a)*rr*(.82+.18*Math.sin(s.phase+a*2));i?ctx.lineTo(x2,y2):ctx.moveTo(x2,y2)}ctx.closePath();const v=clamp(.08+(1-q)*.82+intensity/160+noise(q*3,s.phase,.4)*.1,0,1);ctx.fillStyle=stormColor(v);ctx.globalAlpha=.045+.055*(1-q);ctx.fill()}
-// high-reflectivity core and compact embedded cells
-for(let j=0;j<5;j++){const a=s.phase*.7+j*1.37;const d=r*(.18+.08*Math.sin(s.phase+j));const rr=r*(.07+.045*Math.sin(j*2+s.phase));ctx.beginPath();ctx.arc(Math.cos(a)*d,Math.sin(a)*d,rr,0,Math.PI*2);ctx.fillStyle=stormColor(.72+j*.055);ctx.globalAlpha=.16;ctx.fill()}
-// hook echo: curved high-reflectivity appendage wrapping the southwest/east side
-if(s.tornado){ctx.beginPath();for(let i=0;i<=28;i++){const q=i/28,a=s.phase+Math.PI*.75+q*2.2,rr=r*(.18+q*.62);const xx=Math.cos(a)*rr,yy=Math.sin(a)*rr;if(i)ctx.lineTo(xx,yy);else ctx.moveTo(xx,yy)}ctx.lineWidth=r*.11;ctx.lineCap='round';ctx.strokeStyle='#ef3d46';ctx.globalAlpha=.22;ctx.stroke();drawTornado(r,s)}ctx.globalAlpha=1;ctx.restore()}
-function drawTornado(r,s){const strength=clamp((intensity-52)/48,0,1);const a=s.tornadoPhase*.65+s.tilt;const ox=Math.cos(a)*r*.28,oy=Math.sin(a)*r*.28;ctx.save();ctx.translate(ox,oy);ctx.rotate(a-.6);ctx.beginPath();for(let i=0;i<=32;i++){const q=i/32;const y=-r*.42+q*r*.8;const width=r*(.025+q*.11)*(1+.15*Math.sin(q*12+s.tornadoPhase));const x=Math.sin(q*8+s.tornadoPhase)*width;if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y)}ctx.lineWidth=Math.max(2,r*.045);ctx.strokeStyle='#f4f4f4';ctx.globalAlpha=.22+.35*strength;ctx.stroke();ctx.beginPath();ctx.arc(0,0,r*(.05+.06*strength),0,Math.PI*2);ctx.fillStyle='#f4f4f4';ctx.globalAlpha=.3+.35*strength;ctx.fill();ctx.restore()}
-function tick(now){const dt=Math.min(100,now-last||16);last=now;if(!paused)simTime+=dt*speed;drawRadar(dt*speed);const sec=Math.floor(simTime/1000);el('clock').textContent=new Date(0,0,0,12,0,sec%60).toTimeString().slice(0,8);el('stormCount').textContent=storms.length;el('cellCount').textContent=storms.length*4;el('maxIntensity').textContent=Math.round(40+intensity*.43)+' dBZ';requestAnimationFrame(tick)}requestAnimationFrame(tick);
+function hash(x,y,s=0){const n=Math.sin(x*127.1+y*311.7+s*74.7)*43758.5453;return n-Math.floor(n)}
+function noise2(x,y,s){
+  const x0=Math.floor(x),y0=Math.floor(y),fx=x-x0,fy=y-y0;
+  const sx=fx*fx*(3-2*fx),sy=fy*fy*(3-2*fy);
+  const a=hash(x0,y0,s),b=hash(x0+1,y0,s),c=hash(x0,y0+1,s),d=hash(x0+1,y0+1,s);
+  return (a+(b-a)*sx)+((c+(d-c)*sx)-(a+(b-a)*sx))*sy;
+}
+function fbm(x,y,s){
+  let v=0,a=.5;
+  for(let i=0;i<4;i++){v+=noise2(x,y,s+i*17)*a;x*=2.03;y*=2.03;a*=.5}
+  return v;
+}
+
+// Operational-style radar palette, from no echo through extreme convection.
+const palette=[
+  [-5,[7,15,20]], [5,[11,47,58]], [15,[22,126,139]], [20,[40,190,177]],
+  [25,[67,198,79]], [30,[139,216,48]], [35,[221,226,43]], [40,[255,211,39]],
+  [45,[255,151,35]], [50,[239,65,43]], [55,[196,35,70]], [60,[158,35,139]],
+  [65,[112,72,190]], [70,[226,226,236]], [75,[255,255,255]]
+];
+function dbzColor(dbz){
+  if(dbz<palette[0][0])return palette[0][1];
+  for(let i=1;i<palette.length;i++){
+    const a=palette[i-1],b=palette[i];
+    if(dbz<=b[0]){const t=(dbz-a[0])/(b[0]-a[0]);return [a[1][0]+(b[1][0]-a[1][0])*t,a[1][1]+(b[1][1]-a[1][1])*t,a[1][2]+(b[1][2]-a[1][2])*t]}
+  }
+  return palette[palette.length-1][1];
+}
+
+function stormReflectivity(px,py,s,rangeScale,t){
+  const dx=px-s.x,dy=py-s.y;
+  const cs=Math.cos(s.tilt),sn=Math.sin(s.tilt);
+  const x=dx*cs+dy*sn,y=-dx*sn+dy*cs;
+  const rr=Math.hypot(x,y);
+  const ang=Math.atan2(y,x);
+  const wob=1+.16*Math.sin(3*ang+s.phase)+.09*Math.sin(7*ang-s.phase*1.7)+.045*Math.sin(13*ang+s.seed);
+  const rx=s.r*(1+.08*Math.sin(s.age*.45+s.seed));
+  const q=Math.hypot(x/(rx*1.16),y/(rx*.82));
+  const texture=fbm(x/rx*3.1+3,y/rx*3.1-2,s.seed)*.32+fbm(x/rx*8,y/rx*8,s.seed+8)*.12;
+  const boundary=1+(texture-.18)*.24;
+  const stormShape=Math.exp(-Math.pow(q/(1.05*boundary),3.2));
+  let dbz=-7+stormShape*(31+intensity*.36);
+
+  // Embedded convective cores.
+  for(let j=0;j<4;j++){
+    const a=s.phase*.42+j*1.57+s.seed*.002;
+    const d=rx*(.18+.10*Math.sin(s.phase+j*1.8));
+    const cx=Math.cos(a)*d,cy=Math.sin(a)*d;
+    const core=Math.exp(-(((x-cx)/(rx*(.18+.025*j)))**2+((y-cy)/(rx*(.14+.02*j)))**2)*1.8);
+    dbz+=core*(9-j*.7);
+  }
+
+  // Forward-flank / trailing-stratiform echo.
+  const plumeAng=s.rot+.65;
+  const cp=Math.cos(plumeAng),sp=Math.sin(plumeAng);
+  const tx=x*cp+y*sp,ty=-x*sp+y*cp;
+  dbz+=Math.exp(-((tx-rx*.85)/(rx*1.7))**2-(ty/(rx*.5))**2)*9;
+  dbz+=Math.exp(-((tx+rx*.65)/(rx*1.8))**2-(ty/(rx*.75))**2)*4;
+
+  // Hook/notch: subtract a weak-echo notch and add a curved high-reflectivity appendage.
+  if(s.tornado){
+    const hx=rx*.48,hy=-rx*.28;
+    const hook=Math.exp(-(((x-hx)/(rx*.34))**2+((y-hy)/(rx*.27))**2)*2.1);
+    dbz+=hook*10;
+    const notch=Math.exp(-(((x-rx*.08)/(rx*.23))**2+((y+rx*.08)/(rx*.18))**2)*2.4);
+    dbz-=notch*14;
+    const debris=Math.exp(-(((x-hx*.82)/(rx*.09))**2+((y-hy*.82)/(rx*.09))**2)*3.5);
+    dbz+=debris*(7+Math.sin(s.tornadoPhase)*2);
+  }
+
+  // Range-dependent attenuation and beam spreading.
+  const range=Math.hypot(px,py)*rangeScale;
+  dbz-=Math.max(0,range-0.45)*6.5;
+  dbz-=range*range*.9;
+  dbz+=Math.sin(ang*9+t*.00025+s.seed)*.65;
+  return dbz;
+}
+
+function renderReflectivity(R,t){
+  const image=rctx.createImageData(GRID,GRID),data=image.data;
+  const scale=1/GRID*2.35;
+  const rangeScale=1.55;
+  for(let j=0;j<GRID;j++){
+    for(let i=0;i<GRID;i++){
+      const px=(i+.5-GRID/2)*scale,py=(j+.5-GRID/2)*scale;
+      const range=Math.hypot(px,py);
+      let dbz=-9;
+
+      // Fine low-level clutter/noise around the radar site.
+      if(range<.16){
+        dbz+=Math.max(0,10*(1-range/.16))*noise2(i*.08,j*.08,31);
+      }
+      const speck=fbm(i*.065,j*.065,91);
+      if(speck>.69 && range<1.0)dbz=Math.max(dbz,8+(speck-.69)*18);
+
+      for(const s of storms)dbz=Math.max(dbz,stormReflectivity(px,py,s,rangeScale,t));
+      dbz+=noise2(i*.11,j*.11,17)*1.8-0.9;
+      const c=dbzColor(dbz),k=(j*GRID+i)*4;
+      data[k]=c[0];data[k+1]=c[1];data[k+2]=c[2];data[k+3]=255;
+    }
+  }
+  rctx.putImageData(image,0,0);
+}
+
+function drawRadar(dt){
+  const w=canvas.clientWidth,h=canvas.clientHeight,cx=w/2,cy=h/2,R=Math.min(w,h)*.46;
+  ctx.clearRect(0,0,w,h);ctx.fillStyle='#040b10';ctx.fillRect(0,0,w,h);
+  ctx.save();ctx.translate(cx,cy);
+
+  const ang=(wind-90)*Math.PI/180;
+  for(const s of storms){
+    const move=dt/1000;
+    const dx=Math.cos(ang)*s.p*.008,dy=Math.sin(ang)*s.p*.008;
+    s.x+=dx*speed*move;s.y+=dy*speed*move;s.age+=move*speed;
+    s.phase+=move*(.45+s.rot);s.tornadoPhase+=move*1.8;s.tornadoLife+=move;
+    if(Math.hypot(s.x,s.y)>1.22){s.x=-Math.cos(ang)*1.18;s.y=-Math.sin(ang)*1.18;s.age=0;s.tornadoLife=0}
+    if(s.tornado&&s.tornadoLife>9+Math.abs(Math.sin(s.seed))*8)s.tornado=false;
+    if(!s.tornado&&s.age>4&&intensity>56&&Math.sin(s.age*.73+s.seed)>.94)s.tornado=true;
+  }
+
+  renderReflectivity(R,simTime);
+  ctx.imageSmoothingEnabled=false;
+  ctx.globalAlpha=.96;
+  ctx.drawImage(raster,-R,-R,R*2,R*2);
+  ctx.globalAlpha=1;
+
+  // Range rings and azimuths over the echo field.
+  for(let r=.2;r<=1;r+=.2){
+    ctx.beginPath();ctx.arc(0,0,R*r,0,TAU);
+    ctx.strokeStyle=r===1?'rgba(83,147,158,.65)':'rgba(55,105,115,.38)';ctx.lineWidth=r===1?1.4:1;ctx.stroke();
+  }
+  for(let a=0;a<TAU;a+=Math.PI/12){
+    ctx.beginPath();ctx.moveTo(-R*Math.cos(a),-R*Math.sin(a));ctx.lineTo(R*Math.cos(a),R*Math.sin(a));
+    ctx.strokeStyle='rgba(49,91,100,.28)';ctx.lineWidth=1;ctx.stroke();
+  }
+
+  // Rotating radar sweep: narrow sector, not a solid wind beam.
+  const sweep=(simTime*.00055*speed+ang)%TAU;
+  ctx.save();ctx.globalCompositeOperation='screen';
+  ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,R,sweep-.018,sweep+.018);ctx.closePath();
+  ctx.fillStyle='rgba(120,225,255,.12)';ctx.fill();
+  ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,R,sweep-.075,sweep+.075);ctx.closePath();
+  ctx.fillStyle='rgba(120,225,255,.025)';ctx.fill();ctx.restore();
+
+  // Radar site / center marker.
+  ctx.beginPath();ctx.arc(0,0,3,0,TAU);ctx.fillStyle='#d9faff';ctx.fill();
+  ctx.beginPath();ctx.arc(0,0,7,0,TAU);ctx.strokeStyle='rgba(180,235,245,.55)';ctx.lineWidth=1;ctx.stroke();
+  ctx.restore();
+
+  ctx.fillStyle='#8db3bd';ctx.font='10px ui-monospace,monospace';
+  ctx.fillText('N',cx-4,cy-R-10);ctx.fillText('S',cx-4,cy+R+18);ctx.fillText('O',cx-R-18,cy+3);ctx.fillText('E',cx+R+8,cy+3);
+
+  drawLegend(cx-R,cy+R+30);
+}
+
+function drawLegend(x,y){
+  const labels=[10,20,30,40,50,60,70];
+  ctx.font='9px ui-monospace,monospace';ctx.fillStyle='#9ebdc4';ctx.fillText('RÉFLECTIVITÉ dBZ',x,y-6);
+  const bw=Math.min(30,(Math.min(canvas.clientWidth,canvas.clientHeight)*.72)/labels.length);
+  labels.forEach((v,i)=>{const c=dbzColor(v);ctx.fillStyle=`rgb(${c[0]},${c[1]},${c[2]})`;ctx.fillRect(x+i*bw,y,bw,8);ctx.fillStyle='#789ba4';ctx.fillText(v,x+i*bw-2,y+19)});
+}
+
+function tick(now){
+  const dt=Math.min(100,now-last||16);last=now;
+  if(!paused)simTime+=dt*speed;
+  drawRadar(dt*speed);
+  const sec=Math.floor(simTime/1000);
+  el('clock').textContent=new Date(0,0,0,12,0,sec%60).toTimeString().slice(0,8);
+  el('stormCount').textContent=storms.length;
+  el('cellCount').textContent=storms.length*4;
+  el('maxIntensity').textContent=Math.round(35+intensity*.48)+' dBZ';
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
