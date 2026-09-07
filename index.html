@@ -10,22 +10,20 @@
 <div class="app">
 <header><h1>🌩️ Weather Radar Simulator</h1><p>Simulation radar Doppler — réflectivité et vent</p></header>
 <main class="layout">
-<section class="radar-card">
-<canvas id="radar"></canvas>
-<div id="clock" class="radar-clock">12:00:00</div>
-</section>
+<section class="radar-card"><canvas id="radar"></canvas><div class="radar-overlay"><span>RADAR DOPPLER · 0–120 km</span><span id="clock">12:00:00</span></div></section>
 <section class="panel">
+<h2>Paramètres</h2>
 <label>Vitesse simulation <output id="speedOut">1.00×</output><input id="speed" type="range" min=".1" max="5" step=".1" value="1"></label>
 <label>Intensité <output id="intensityOut">70%</output><input id="intensity" type="range" min="10" max="100" value="70"></label>
 <label>Direction du vent <output id="windOut">E · 70°</output><input id="wind" type="range" min="0" max="359" value="70"></label>
 <label>Type d'orage<select id="stormType"><option value="single">⛈️ Unicellulaire</option><option value="multicell">🌩️ Multicellulaire</option><option value="line">🌧️ Ligne de grain</option><option value="supercell" selected>🌀 Supercellule</option><option value="bow">🏹 Écho en arc</option><option value="derecho">💨 Système convectif</option></select></label>
 <div class="actions"><button id="windToggle" class="wind-toggle">🌩️ Afficher : RADAR</button><button id="toggle">❚❚ Pause</button><button id="reset">↻ Réinitialiser</button></div>
 <button id="add" class="spawn">＋ Générer un orage</button>
-<div class="info"><strong>Types d'orages</strong><p>Chaque type possède une signature radar nettement différente : cellule compacte, cellules multiples, ligne, supercellule avec crochet, écho en arc ou système convectif étendu.</p></div>
+<div class="info"><strong>Types d'orages</strong><p>Les structures sont orientées dans l'axe du vent. Les vents forts restent confinés aux zones convectives, avec un cœur tornadique de quelques kilomètres.</p></div>
 <div class="stats"><div><span>Orages</span><strong id="stormCount">5</strong></div><div><span>Cellules</span><strong id="cellCount">10</strong></div><div><span>Max</span><strong id="maxIntensity">69 dBZ</strong></div><div><span>Vent</span><strong id="windSpeedMap">74 kt</strong></div></div>
 </section>
 </main>
 </div>
-<script src="app.js?v=stormtypes2"></script>
+<script src="app.js?v=stormtypes3"></script>
 </body>
 </html>
