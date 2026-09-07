@@ -21,14 +21,24 @@
         <label>Vitesse <output id="speedOut">1.0×</output><input id="speed" type="range" min="0.25" max="4" value="1" step="0.25" /></label>
         <label>Intensité <output id="intensityOut">70%</output><input id="intensity" type="range" min="20" max="100" value="70" /></label>
         <label>Direction du vent <output id="windOut">ENE · 70°</output><input id="wind" type="range" min="0" max="359" value="70" /></label>
-        <button id="windToggle" class="wind-toggle active">🌬️ Carte des vents : ON</button>
+        <label>Type d'orage
+          <select id="stormType">
+            <option value="single">⛈️ Unicellulaire</option>
+            <option value="multicell">🌩️ Multicellulaire</option>
+            <option value="line">🌧️ Ligne de grain</option>
+            <option value="supercell" selected>🌀 Supercellule</option>
+            <option value="bow">🏹 Écho en arc</option>
+            <option value="derecho">💨 Système convectif</option>
+          </select>
+        </label>
+        <button id="windToggle" class="wind-toggle">🌩️ Afficher : RADAR</button>
         <div class="actions"><button id="toggle">❚❚ Pause</button><button id="reset" class="secondary">↻ Réinitialiser</button></div>
         <button id="add" class="spawn">＋ Générer un orage</button>
         <div class="stats"><div><span>Orages</span><strong id="stormCount">5</strong></div><div><span>Cellules actives</span><strong id="cellCount">10</strong></div><div><span>Intensité max</span><strong id="maxIntensity">70 dBZ</strong></div></div>
-        <div class="info"><strong>Carte des vents</strong><p>Active ou masque les flèches et lignes de flux sans modifier la simulation des supercellules.</p></div>
+        <div class="info"><strong>Types d'orages</strong><p>Choisis une structure puis génère une nouvelle cellule. Chaque type possède sa propre géométrie et dynamique.</p></div>
       </aside>
     </section>
   </main>
-  <script src="app.js"></script>
+  <script src="app.js?v=stormtypes1"></script>
 </body>
 </html>
